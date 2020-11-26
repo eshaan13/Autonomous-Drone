@@ -65,15 +65,7 @@ public class Drone {
 			do {
 				closestSensorPos =  currentPos.findClosestSensor(sensors, exploredSensors);
 				closestSensor = sensors.get(closestSensorPos);
-				nextPos = makeMove(currentPos, closestSensorPos, null);
-				if(insideNoFlyZone(nextPos)) {
-	//				TODO : Algo to find a new path ignoring the no fly zones
-					System.out.println("Drone inside No Fly Zone");
-				}
-				if(!nextPos.insideDroneConfinementZone(droneConfinementZone)) {
-	//				TODO : Change the direction towards inside the DCZ
-					System.out.println("Drone outside Drone Confinement Zone");
-				}
+				nextPos = makeMove3(currentPos, closestSensorPos, null);
 				currentPos = nextPos;
 				moves.add(currentPos);
 				++ movesCount;
@@ -90,26 +82,14 @@ public class Drone {
 		
 		while(!(currentPos.distance(target) < 0.0003) && movesCount < 150) {
 			
-			Position nextPos = makeMove(currentPos, 0, target);
-			if(insideNoFlyZone(nextPos)) {
-	//			TODO : Algo to find a new path ignoring the no fly zones
-				System.out.println("Drone inside No Fly Zone");
-			}
-			if(!nextPos.insideDroneConfinementZone(droneConfinementZone)) {
-	//			TODO : Change the direction towards inside the DCZ
-				System.out.println("Drone outside Drone Confinement Zone");
-			}
+			Position nextPos = makeMove3(currentPos, 0, target);
 			currentPos = nextPos;
 			moves.add(currentPos);
 			++ movesCount;
 		}
 	}
-
-	protected void readSensor(int closestSensorPos) {
-		exploredSensors.add(closestSensorPos);
-	}
 	
-	protected Position makeMove(Position currentPos, int closestSensorPos, Position target) {
+	protected Position makeMove3(Position currentPos, int closestSensorPos, Position target) {
 		
 		Position destination;
 		if(target == null)
@@ -117,12 +97,42 @@ public class Drone {
 		else destination = target;
 			
 		double direction = currentPos.findDirection(destination);
-		double radianAngle = Math.toRadians(direction);
 		
-		// Next position in the direction of the closest sensor, distance of 0.0003 degrees
+		if(checkDroneCrossNFZ(currentPos, direction))
+			direction = posInsideNFZ(currentPos, direction);
+		
+		double radianAngle = Math.toRadians(direction);
 		Position nextPos = new Position(currentPos.getLng() + 0.0003 * Math.cos(radianAngle), 
 				currentPos.getLat() + 0.0003 * Math.sin(radianAngle));
+		
 		return nextPos;
+	}
+	
+	protected boolean checkDroneCrossNFZ(Position currentPos, double direction) {
+		
+		double radianAngle = Math.toRadians(direction);
+		Position nextPos = null;
+		for(int i = 1; i <= 3; ++i) {
+			nextPos = new Position(currentPos.getLng() + (0.0001 * i) * Math.cos(radianAngle), 
+					currentPos.getLat() + (0.0001 * i) * Math.sin(radianAngle));
+			
+			if(insideNoFlyZone(nextPos) || !nextPos.insideDroneConfinementZone(droneConfinementZone)) {
+				return true;
+			}
+		}
+		
+		return false;
+	}
+
+	protected double posInsideNFZ(Position currentPos, double direction) {
+		
+		double directionNew = direction;
+		
+		do {
+			directionNew = directionNew + 10;
+		} while(checkDroneCrossNFZ(currentPos, directionNew));
+		
+		return directionNew;
 	}
 	
 	/**
@@ -138,4 +148,46 @@ public class Drone {
 		
 		return result_AT || result_INF || result_DHT || result_LIB;
 	}
+
+	protected void readSensor(int closestSensorPos) {
+		sensors.get(closestSensorPos).setVisited(true);
+		exploredSensors.add(closestSensorPos);
+	}
+	
+//	protected Position makeMove(Position currentPos, int closestSensorPos, Position target) {
+//		
+//		Position destination;
+//		if(target == null)
+//			destination = sensors.get(closestSensorPos).getPos();
+//		else destination = target;
+//			
+//		double direction = currentPos.findDirection(destination);
+//		double radianAngle = Math.toRadians(direction);
+//		
+//		// Next position in the direction of the closest sensor, distance of 0.0003 degrees
+//		Position nextPos = new Position(currentPos.getLng() + 0.0003 * Math.cos(radianAngle), 
+//				currentPos.getLat() + 0.0003 * Math.sin(radianAngle));
+//		return nextPos;
+//	}
+	
+//	protected Position makeMove2(Position currentPos, int closestSensorPos, Position target) {
+//		
+//		Position destination;
+//		if(target == null)
+//			destination = sensors.get(closestSensorPos).getPos();
+//		else destination = target;
+//			
+//		double direction = currentPos.findDirection(destination);
+//		double radianAngle = Math.toRadians(direction);
+//		
+//		// Next position in the direction of the closest sensor, distance of 0.0003 degrees
+//		Position nextPos = new Position(currentPos.getLng() + 0.0003 * Math.cos(radianAngle), 
+//				currentPos.getLat() + 0.0003 * Math.sin(radianAngle));
+//		
+//		if(insideNoFlyZone(nextPos)) {
+//			nextPos = insideNFZ(currentPos, direction);
+//		}
+//		
+//		return nextPos;
+//	}
 }

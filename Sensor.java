@@ -8,7 +8,8 @@ public class Sensor {
 	private Position pos;
 	private int sensorNumber;
 	private String rgbValue;
-	private String markerSymbol;
+	private String markerSymbol = null;
+	private boolean visited;
 	
 	
 	public String getLocation() {
@@ -44,7 +45,12 @@ public class Sensor {
 	public void setMarkerSymbol(String markerSymbol) {
 		this.markerSymbol = markerSymbol;
 	}
-	
+	public boolean isVisited() {
+		return visited;
+	}
+	public void setVisited(boolean visited) {
+		this.visited = visited;
+	}
 	/**
 	 * Method to check if the drone is in range of the sensor or not
 	 * @param p position of the drone

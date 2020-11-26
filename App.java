@@ -26,6 +26,9 @@ public class App
 	final static private Point Buccleuch_St_bus_stop = Point.fromLngLat(-3.184319, 55.942617);
 	final static private Point Meadows_Top = Point.fromLngLat(-3.192473, 55.942617);
 	
+	/** List of edges of the Drone Confinement Zone */
+	private static List<Point> droneConfinementZone = new ArrayList<Point>();
+	
 	/** dd/mm/yyyy when the drone has to reads the sensors */
 	private String day;
 	private String month;
@@ -180,6 +183,8 @@ public class App
 	}
 	
 	protected void toGeoJson() {
+		
+		// Adding the GeoJson features of the moves made by the drone
 		var points = new ArrayList<Point>();
 		for(Position move: moves)
 			points.add(Point.fromLngLat(move.getLng(), move.getLat()));
@@ -189,6 +194,7 @@ public class App
 		var features = new ArrayList<Feature>();
 		features.add(feature);
 		
+		// Adding the GeoJson features of the sensors
 		for(Sensor sensor: sensors) {
 			Point pt = Point.fromLngLat(sensor.getPos().getLng(), sensor.getPos().getLat());
 			Feature featureSensor = Feature.fromGeometry((Geometry) pt);
@@ -196,24 +202,40 @@ public class App
 			featureSensor.addStringProperty("location", sensor.getLocation());
 			featureSensor.addStringProperty("rgb-string", sensor.getRgbValue());
 			featureSensor.addStringProperty("marker-color", sensor.getRgbValue());
-			featureSensor.addStringProperty("marker-symbol", sensor.getMarkerSymbol());
+			if(sensor.getMarkerSymbol() != null) // Only visited sensors
+				featureSensor.addStringProperty("marker-symbol", sensor.getMarkerSymbol());
 			features.add(featureSensor);
 		}
 		
+		// Adding the GeoJson features of the Drone Confinement Zone
+		droneConfinementZone.add(Forrest_Hill);// adding the last point of the polygon
+		var listoflistDCZ = new ArrayList<List<Point>>();
+		listoflistDCZ.add(droneConfinementZone);
+		Polygon polyDCZ = Polygon.fromLngLats(listoflistDCZ);
+		Feature featureDCZ = Feature.fromGeometry((Geometry) polyDCZ);
+		featureDCZ.addStringProperty("fill", "#ffffff");
+		featureDCZ.addNumberProperty("fill-opacity", 0);
+//		featureDCZ.addNumberProperty("weight", 0);
+//		featureDCZ.addNumberProperty("fillOpacity", 0.75);
+		features.add(featureDCZ);
+		
+		// Feature Collection of all the features
 		FeatureCollection fc = FeatureCollection.fromFeatures(features);
 		System.out.println(fc.toJson());
 	}
 	
 	protected void setSensorProperties() {
 		for(Sensor sensor: sensors) {
-			sensor.setRgbValue(getRGBValue(sensor));
-			sensor.setMarkerSymbol(getMarkerSymbol(sensor));
+			if(sensor.isVisited()) { // Visited sensors
+				sensor.setRgbValue(getRGBValue(sensor));
+				sensor.setMarkerSymbol(getMarkerSymbol(sensor));
+			}
+			else sensor.setRgbValue("#aaaaaa"); // Not visited sensors	
 		}
 	}
 	
 	protected void prepareDrone() {
 		
-		List<Point> droneConfinementZone = new ArrayList<Point>();
     	droneConfinementZone.add(Forrest_Hill);
     	droneConfinementZone.add(KFC);
     	droneConfinementZone.add(Buccleuch_St_bus_stop);
