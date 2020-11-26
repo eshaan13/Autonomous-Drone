@@ -67,7 +67,9 @@ public class Position {
     	for (i = 0, j = points.size() - 1; i < points.size(); j = i++) {
     		Point pt1 = points.get(i);
     		Point pt2 = points.get(j);
-        if ((pt1.latitude() > lat) != (pt2.latitude() > lat) && (lng < (pt2.longitude() - pt1.longitude()) * (lat - pt1.latitude()) / (pt2.latitude() - pt1.latitude()) + pt1.longitude())) {
+        if ((pt1.latitude() > lat) != (pt2.latitude() > lat) && 
+        		(lng < (pt2.longitude() - pt1.longitude()) * (lat - pt1.latitude()) / 
+        				(pt2.latitude() - pt1.latitude()) + pt1.longitude())) {
           result = !result;
          }
     	}

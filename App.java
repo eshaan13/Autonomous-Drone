@@ -139,7 +139,8 @@ public class App
 	 * @throws InterruptedException
 	 */
 	protected void airQualityData() throws IOException, InterruptedException {
-		String urlString = "http://localhost:80/maps/" + year + "/" + month + "/" + day + "/air-quality-data.json";
+		String urlString = "http://localhost:80/maps/" + 
+				year + "/" + month + "/" + day + "/air-quality-data.json";
 		var response = setConnection(urlString);
 		var listType = new TypeToken<ArrayList<Sensor>>() {}.getType();
 		sensors = new Gson().fromJson(response.toString(), listType);
@@ -154,7 +155,8 @@ public class App
 	 */
 	protected WhatThreeWord whatThreeWord(String loc) throws IOException, InterruptedException {
 		String words[] = loc.split("\\.", 3);
-		String urlString = "http://localhost:80/words/" + words[0] + "/" + words[1] + "/" + words[2] + "/details.json";
+		String urlString = "http://localhost:80/words/" + 
+				words[0] + "/" + words[1] + "/" + words[2] + "/details.json";
 		var response = setConnection(urlString);
 		var wtw = new Gson().fromJson(response.toString(), WhatThreeWord.class);
 		return wtw;
@@ -171,7 +173,8 @@ public class App
 			Sensor sensor = sensors.get(i);
 			String loc = sensor.getLocation();
 			var wtw = whatThreeWord(loc);
-			sensor.setPos(new Position(wtw.getCoordinates().getLongitude(), wtw.getCoordinates().getLatitude()));
+			sensor.setPos(new Position(wtw.getCoordinates().getLongitude(), 
+					wtw.getCoordinates().getLatitude()));
 			sensor.setSensorNumber(i);
 		}
 	}
@@ -219,7 +222,8 @@ public class App
 		drone.traverseSensors();
 		drone.homeComing();
 		moves = drone.getMoves();
-		System.out.println("Moves count: " + drone.getMovesCount() + ", Explored sensors: " + drone.getExploredSensors());
+		System.out.println("Moves count: " + drone.getMovesCount() + 
+				", Explored sensors: " + drone.getExploredSensors());
 	}
 	
 	
