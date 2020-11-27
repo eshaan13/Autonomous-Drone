@@ -37,6 +37,9 @@ public class App
 	/** Starting position of the drone */
 	private Position startingPosition;
 	
+	/** Port number of the seb server */
+	private int portNumber;
+	
 	/** GeoJSON features of No Fly Zone Buildings */
 	private List<Polygon> noFlyZoneBuildings = new ArrayList<Polygon>();
 
@@ -54,11 +57,12 @@ public class App
 	 * Constructor to initialise the date and the starting position of the drone
 	 * @param Date and starting position of the drone
 	 */
-	public App(String day, String mnth, String yr, Position startPos) {
+	public App(String day, String mnth, String yr, Position startPos, int portNumber) {
 		this.day = day;
 		this.month = mnth;
 		this.year = yr;
 		this.startingPosition = startPos;
+		this.portNumber = portNumber;
 	}
 	
 	/**
@@ -127,7 +131,7 @@ public class App
 	protected void noFlyZoneBuildings() throws IOException, InterruptedException {
 
 		// Address of geoJson file of No Fly Zone Buildings
-		String urlString = "http://localhost:80/buildings/no-fly-zones.geojson";
+		String urlString = "http://localhost:" + portNumber + "/buildings/no-fly-zones.geojson";
 		var response = setConnection(urlString);
 		FeatureCollection fc = FeatureCollection.fromJson(response.toString());
 		var noFlyZoneBuildingsFeatures = fc.features();
@@ -142,7 +146,7 @@ public class App
 	 * @throws InterruptedException
 	 */
 	protected void airQualityData() throws IOException, InterruptedException {
-		String urlString = "http://localhost:80/maps/" + 
+		String urlString = "http://localhost:" + portNumber + "/maps/" + 
 				year + "/" + month + "/" + day + "/air-quality-data.json";
 		var response = setConnection(urlString);
 		var listType = new TypeToken<ArrayList<Sensor>>() {}.getType();
@@ -158,7 +162,7 @@ public class App
 	 */
 	protected WhatThreeWord whatThreeWord(String loc) throws IOException, InterruptedException {
 		String words[] = loc.split("\\.", 3);
-		String urlString = "http://localhost:80/words/" + 
+		String urlString = "http://localhost:" + portNumber + "/words/" + 
 				words[0] + "/" + words[1] + "/" + words[2] + "/details.json";
 		var response = setConnection(urlString);
 		var wtw = new Gson().fromJson(response.toString(), WhatThreeWord.class);
@@ -248,7 +252,12 @@ public class App
 				", Explored sensors: " + drone.getExploredSensors());
 	}
 	
-	
+	protected List<Double> getDirections(){
+		var directions = new ArrayList<Double>();
+		for(int i = 0; i < moves.size() - 1; ++i)
+			directions.add(moves.get(i).findDirection(moves.get(i+1)));
+		return directions;
+	}
 	
 	
 	/**
@@ -261,7 +270,7 @@ public class App
     public static void main( String[] args ) throws IOException, InterruptedException {
     	
     	Position startingPoint = new Position(Double.parseDouble(args[4]), Double.parseDouble(args[3]));
-    	App obj = new App(args[0], args[1], args[2], startingPoint);
+    	App obj = new App(args[0], args[1], args[2], startingPoint, Integer.parseInt(args[6]));
     	
     	List<Point> droneConfinementZone = new ArrayList<Point>();
     	droneConfinementZone.add(Forrest_Hill);
@@ -296,24 +305,6 @@ public class App
 //    	Point test_INF = Point.fromLngLat(-3.187258243560791, 55.94510858632841);
 
 //    	System.out.println("Final: " + (obj.insideNoFlyZone(test_INF)));
-		
-    	
-//    	try {
-//    	      File myObj = new File("heatmap.geojson");
-//    	      myObj.createNewFile();
-//    	    } catch (IOException e) {
-//    	      System.out.println("An error occurred: " + e);
-//    	      e.printStackTrace();
-//    	    }
-//    	
-//    	
-//    	try {
-//	    		FileWriter fr = new FileWriter("heatmap.geojson");
-//	        	fr.write(fc);
-//	        	fr.close();
-//    	    } catch (IOException e) {
-//    	    	System.out.println("An error occurred: " + e);
-//	    	      e.printStackTrace();
-//    	    }  	
+		  	
     }
 }
