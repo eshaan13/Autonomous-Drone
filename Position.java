@@ -2,6 +2,8 @@ package uk.ac.ed.inf.aqmaps;
 
 import java.util.List;
 import com.mapbox.geojson.Point;
+import com.mapbox.geojson.Polygon;
+import com.mapbox.turf.TurfJoins;
 
 public class Position {
 	
@@ -29,7 +31,7 @@ public class Position {
 	 * @param p2 Second point
 	 * @return Distance between the 2 points 
 	 */
-	protected double distance(Position pos) {
+	double distance(Position pos) {
 		return Math.sqrt(Math.pow(lat - pos.getLat(), 2) + Math.pow(lng - pos.getLng(), 2));
 	}
 	
@@ -38,7 +40,7 @@ public class Position {
 	 * @param pos current position of the drone
 	 * @return number of closest sensor
 	 */
-	protected int findClosestSensor(List<Sensor> sensors, List<Integer> exploredList) {
+	int findClosestSensor(List<Sensor> sensors, List<Integer> exploredList) {
 		
 		double min_dist = Double.MAX_VALUE;
 		int min_pos = 0;
@@ -54,49 +56,29 @@ public class Position {
 		}
 		return min_pos;
 	}
-
-	/**
-     * Check if the given point is inside the boundary by using the ray intersection algorithm.
-     * @param test The point to check
-     * @return true if the point is inside the boundary, false otherwise
-     */
-    protected boolean containPoint(List<Point> points) {
-    	
-    	int i,j;
-    	boolean result = false;
-    	for (i = 0, j = points.size() - 1; i < points.size(); j = i++) {
-    		Point pt1 = points.get(i);
-    		Point pt2 = points.get(j);
-        if ((pt1.latitude() > lat) != (pt2.latitude() > lat) && 
-        		(lng < (pt2.longitude() - pt1.longitude()) * (lat - pt1.latitude()) / 
-        				(pt2.latitude() - pt1.latitude()) + pt1.longitude())) {
-          result = !result;
-         }
-    	}
-    	return result;
-    }
-    
-//    protected boolean containPoint2(List<Point> points) {
-//    	TurfJoins
-//    	return true;
-//    }
     
     /**
 	 * Method to check if the next position of the drone is inside the Drone Confinement Zone
 	 * @param pt next position of the drone
 	 * @return true if the position is inside the Drone Confinement Zone, false otherwise
 	 */
-	protected boolean insideDroneConfinementZone(List <Point> droneConfinementZone) {
-		boolean result = containPoint(droneConfinementZone);
+	boolean insideDroneConfinementZone(List <Point> droneConfinementZone) { 
+		Point p = Point.fromLngLat(lng, lat);
+		boolean result = TurfJoins.inside(p, Polygon.fromLngLats(List.of(droneConfinementZone)));
 		return result;
 	}
 	
-	protected double findDirection(Position pos) {
+	/**
+	 * Method to find direction towards the given position
+	 * @param pos position
+	 * @return direction of the given position
+	 */
+	double findDirection(Position pos) {
     	double direction = Math.toDegrees(Math.atan2((pos.getLat() - lat), (pos.getLng() - lng)));
 		if(direction < 0)
 			direction += 360;
 		direction = 10 * (Math.round(direction / 10.0));
 		return direction;
 	}
-    
+   
 }

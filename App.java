@@ -52,7 +52,7 @@ public class App
 	/** List of explored sensors */
 	private List<Integer> exploredSensors;
 	
-	/** Indexes of the moves when drone reads a sensor */
+	/** Indexes of the move when drone reads a sensor */
 	private List<Integer> moveWhileReading = new ArrayList<Integer>();
 	
 	
@@ -61,7 +61,7 @@ public class App
 	
 	/**
 	 * Constructor to initialise the date and the starting position of the drone
-	 * @param Date and starting position of the drone
+	 * @param Date, starting position of the drone and port number
 	 */
 	public App(String day, String month, String yr, Position startPos, int portNumber) {
 		this.day = day;
@@ -74,7 +74,7 @@ public class App
 	/**
 	 * Method to return the RGB value for the reading
 	 * @param reading reading of the sensor
-	 * @return RGB string for that sensor
+	 * @return RGB rgb color for that sensor
 	 */
 	private String getRGBValue(Sensor sensor) {
 		
@@ -101,6 +101,11 @@ public class App
 		return null;
 	}
 	
+	/**
+	 * Method to return the marker symbol bases on the reading of the sensor
+	 * @param sensor
+	 * @return marker symbol for that sensor
+	 */
 	private String getMarkerSymbol(Sensor sensor) {
 		
 		if(sensor.getBattery() < 10.0 || sensor.getReading() == "null" || sensor.getReading() == "NaN")
@@ -114,9 +119,8 @@ public class App
 		return null;
 	}
 	
-	
 	/**
-	 * Method to set up a connection with the HTTP Server.
+	 * Method to set up a connection with the web server.
 	 * @param urlString Address of the file to be read
 	 * @return response received from the server
 	 * @throws IOException
@@ -130,7 +134,7 @@ public class App
 	}
 	
 	/**
-	 * Method to read the No FlyZone file and initialise the global variable of buildings.
+	 * Method to read the No FlyZone file on the web server and initialise the global variable of buildings.
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
@@ -145,9 +149,8 @@ public class App
 			noFlyZoneBuildings.add((Polygon)feature.geometry());
 	}
 	
-	
 	/**
-	 * Method to read the JSON file for Air Quality Data
+	 * Method to read the JSON file for Air Quality Data on the web server
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
@@ -160,7 +163,7 @@ public class App
 	}
 	
 	/**
-	 * Method to read the JSON file for What Three Word
+	 * Method to read the JSON file for What Three Word on the web server
 	 * @param words location of the sensor in what three word format
 	 * @return an instance of what three word
 	 * @throws IOException
@@ -192,6 +195,10 @@ public class App
 		}
 	}
 	
+	/**
+	 * Method to generate the feature collection of all the sensors and the drone flight path
+	 * @return json string of the feature collection
+	 */
 	private String toGeoJson() {
 		
 		// Adding the GeoJson features of the moves made by the drone
@@ -217,29 +224,27 @@ public class App
 			features.add(featureSensor);
 		}
 		
-		
 		// REMOVE
-		
-		// REMOVE Adding the GeoJson features of the Drone Confinement Zone
-		droneConfinementZone.add(Forrest_Hill);// adding the last point of the polygon
-		Polygon polyDCZ = Polygon.fromLngLats(List.of(droneConfinementZone));
-		Feature featureDCZ = Feature.fromGeometry((Geometry) polyDCZ);
-		featureDCZ.addStringProperty("fill", "#ffffff");
-		featureDCZ.addNumberProperty("fill-opacity", 0);
-		features.add(featureDCZ);
-		
-		// REMOVE Adding the Starting Point
-		Point start = Point.fromLngLat(startingPosition.getLng(), startingPosition.getLat());
-		Feature f = Feature.fromGeometry((Geometry) start);
-		f.addStringProperty("marker-size", "large");
-		f.addStringProperty("marker-color", "#9400D3");
-		features.add(f);
-		
-		// REMOVE Adding the No Fly Zones
-		features.add(Feature.fromGeometry((Geometry)noFlyZoneBuildings.get(0)));
-		features.add(Feature.fromGeometry((Geometry)noFlyZoneBuildings.get(1)));
-		features.add(Feature.fromGeometry((Geometry)noFlyZoneBuildings.get(2)));
-		features.add(Feature.fromGeometry((Geometry)noFlyZoneBuildings.get(3)));
+//		// (REMOVE) Adding the GeoJson features of the Drone Confinement Zone
+//		droneConfinementZone.add(Forrest_Hill);// adding the last point of the polygon
+//		Polygon polyDCZ = Polygon.fromLngLats(List.of(droneConfinementZone));
+//		Feature featureDCZ = Feature.fromGeometry((Geometry) polyDCZ);
+//		featureDCZ.addStringProperty("fill", "#ffffff");
+//		featureDCZ.addNumberProperty("fill-opacity", 0);
+//		features.add(featureDCZ);
+//		
+//		// (REMOVE) Adding the Starting Point
+//		Point start = Point.fromLngLat(startingPosition.getLng(), startingPosition.getLat());
+//		Feature f = Feature.fromGeometry((Geometry) start);
+//		f.addStringProperty("marker-size", "large");
+//		f.addStringProperty("marker-color", "#9400D3");
+//		features.add(f);
+//		
+//		// (REMOVE) Adding the No Fly Zones
+//		features.add(Feature.fromGeometry((Geometry)noFlyZoneBuildings.get(0)));
+//		features.add(Feature.fromGeometry((Geometry)noFlyZoneBuildings.get(1)));
+//		features.add(Feature.fromGeometry((Geometry)noFlyZoneBuildings.get(2)));
+//		features.add(Feature.fromGeometry((Geometry)noFlyZoneBuildings.get(3)));
 		
 		// Feature Collection of all the features
 		FeatureCollection fc = FeatureCollection.fromFeatures(features);
@@ -256,6 +261,9 @@ public class App
 		}
 	}
 	
+	/**
+	 * Method to traverse through all the sensors and then return back to the starting position 
+	 */
 	private void prepareDrone() {
 		
     	droneConfinementZone.add(Forrest_Hill);
@@ -271,6 +279,9 @@ public class App
 				"\nExplored sensors: " + drone.getExploredSensors() + "\nNo of sensors read: " + drone.getExploredSensors().size());
 	}
 	
+	/**
+	 * Method to generate the output files
+	 */
 	private void generateOutputFiles() {
     		
 		String fileNameTXT = "flightpath-" + day + "-" + month + "-" + year + ".txt";
@@ -287,7 +298,7 @@ public class App
     			
 		// Creating GeoJson files
 		try {
-			File myObj = new File("/Users/eshaangupta/Desktop/ILP/heatmap/ilp-results/" + fileNameGeoJson);
+			File myObj = new File(fileNameGeoJson);
 			myObj.createNewFile();
 		} catch (IOException e) {
 			System.out.println("An error occurred: " + e);
@@ -296,6 +307,11 @@ public class App
 		writeOutputFiles(fileNameTXT, fileNameGeoJson);
 	}
 	
+	/**
+	 * Method to write in the created output files
+	 * @param fileNameTXT txt output file
+	 * @param fileNameGeoJson geoJson output file
+	 */
 	private void writeOutputFiles(String fileNameTXT, String fileNameGeoJson) {
 		
 		String s_txt = "";
@@ -343,8 +359,8 @@ public class App
 	
 	/**
 	 * Main method to instantiate the class App.java and call methods accordingly
-	 * to read the sensors.
-	 * @param args date and the starting position of the drone
+	 * to make the drone read the sensors and then return back to the starting position.
+	 * @param args date and, starting position of the drone, random seed and port number of web server 
 	 * @throws IOException
 	 * @throws InterruptedException 
 	 */
@@ -358,6 +374,7 @@ public class App
     	droneConfinementZone.add(KFC);
     	droneConfinementZone.add(Buccleuch_St_bus_stop);
     	droneConfinementZone.add(Meadows_Top);
+    	droneConfinementZone.add(Forrest_Hill);
     	
     	// Checking if the starting position of the drone is outside the Drone Confinement Zone
     	if(!startingPoint.insideDroneConfinementZone(droneConfinementZone)) {
@@ -369,22 +386,6 @@ public class App
     	obj.getSensors();
     	obj.prepareDrone();
     	obj.setSensorProperties();
-    	obj.generateOutputFiles();
-    	
-    	
-    	
-    	
-    	
-//    	Point test_In_DCZ = Point.fromLngLat(-3.1867003440856934, 55.944345561848124);
-//    	Point test_Out_DCZ = Point.fromLngLat(-3.188333138823509, 55.942615746202236);
-//    	System.out.println(obj.insideDroneConfinementZone(test_In_DCZ));
-    	
-//    	Point test_AT = Point.fromLngLat(-3.1867003440856934, 55.944345561848124);
-//    	Point test_DHT = Point.fromLngLat(-3.186507225036621, 55.94327009236843);
-//    	Point test_LIB = Point.fromLngLat(-3.188985586166382, 55.942771400854795);
-//    	Point test_INF = Point.fromLngLat(-3.187258243560791, 55.94510858632841);
-
-//    	System.out.println("Final: " + (obj.insideNoFlyZone(test_INF)));
-		  	
+    	obj.generateOutputFiles();		  	
     }
 }
