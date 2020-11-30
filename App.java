@@ -1,4 +1,4 @@
-package uk.ac.ed.inf.heatmap;
+package uk.ac.ed.inf.aqmaps;
 
 import java.io.*;
 import java.net.URI;
@@ -41,13 +41,19 @@ public class App
 	private int portNumber;
 	
 	/** GeoJSON features of No Fly Zone Buildings */
-	private List<Polygon> noFlyZoneBuildings = new ArrayList<Polygon>();
+	List<Polygon> noFlyZoneBuildings = new ArrayList<Polygon>();
 
 	/** List of sensors to be read */
-	private List<Sensor> sensors = new ArrayList<Sensor>();
+	List<Sensor> sensors = new ArrayList<Sensor>();
 	
 	/** List of moves made by the drone */
 	private List<Position> moves;
+	
+	/** List of explored sensors */
+	private List<Integer> exploredSensors;
+	
+	/** Indexes of the moves when drone reads a sensor */
+	private List<Integer> moveWhileReading = new ArrayList<Integer>();
 	
 	
 	
@@ -57,9 +63,9 @@ public class App
 	 * Constructor to initialise the date and the starting position of the drone
 	 * @param Date and starting position of the drone
 	 */
-	public App(String day, String mnth, String yr, Position startPos, int portNumber) {
+	public App(String day, String month, String yr, Position startPos, int portNumber) {
 		this.day = day;
-		this.month = mnth;
+		this.month = month;
 		this.year = yr;
 		this.startingPosition = startPos;
 		this.portNumber = portNumber;
@@ -70,7 +76,7 @@ public class App
 	 * @param reading reading of the sensor
 	 * @return RGB string for that sensor
 	 */
-	protected String getRGBValue(Sensor sensor) {
+	private String getRGBValue(Sensor sensor) {
 		
 		if(sensor.getBattery() < 10.0 || sensor.getReading() == "null" || sensor.getReading() == "NaN")
 			return "#000000";
@@ -95,7 +101,7 @@ public class App
 		return null;
 	}
 	
-	protected String getMarkerSymbol(Sensor sensor) {
+	private String getMarkerSymbol(Sensor sensor) {
 		
 		if(sensor.getBattery() < 10.0 || sensor.getReading() == "null" || sensor.getReading() == "NaN")
 			return "cross";
@@ -116,7 +122,7 @@ public class App
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	protected Object setConnection(String urlString) throws IOException, InterruptedException {
+	private Object setConnection(String urlString) throws IOException, InterruptedException {
 		final HttpClient client = HttpClient.newHttpClient();
 		var request = HttpRequest.newBuilder().uri(URI.create(urlString)).build();
 		var response = client.send(request, BodyHandlers.ofString());
@@ -145,7 +151,7 @@ public class App
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	protected void airQualityData() throws IOException, InterruptedException {
+	private void airQualityData() throws IOException, InterruptedException {
 		String urlString = "http://localhost:" + portNumber + "/maps/" + 
 				year + "/" + month + "/" + day + "/air-quality-data.json";
 		var response = setConnection(urlString);
@@ -174,7 +180,7 @@ public class App
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	protected void getSensors() throws IOException, InterruptedException {
+	private void getSensors() throws IOException, InterruptedException {
 		airQualityData(); // Read the air quality file for that day.
 		for(int i = 0; i < sensors.size(); ++i) {
 			Sensor sensor = sensors.get(i);
@@ -186,7 +192,7 @@ public class App
 		}
 	}
 	
-	protected void toGeoJson() {
+	private String toGeoJson() {
 		
 		// Adding the GeoJson features of the moves made by the drone
 		var points = new ArrayList<Point>();
@@ -206,29 +212,41 @@ public class App
 			featureSensor.addStringProperty("location", sensor.getLocation());
 			featureSensor.addStringProperty("rgb-string", sensor.getRgbValue());
 			featureSensor.addStringProperty("marker-color", sensor.getRgbValue());
-			if(sensor.getMarkerSymbol() != null) // Only visited sensors
+			if(sensor.isVisited()) // Only visited sensors
 				featureSensor.addStringProperty("marker-symbol", sensor.getMarkerSymbol());
 			features.add(featureSensor);
 		}
 		
-		// Adding the GeoJson features of the Drone Confinement Zone
+		
+		// REMOVE
+		
+		// REMOVE Adding the GeoJson features of the Drone Confinement Zone
 		droneConfinementZone.add(Forrest_Hill);// adding the last point of the polygon
-		var listoflistDCZ = new ArrayList<List<Point>>();
-		listoflistDCZ.add(droneConfinementZone);
-		Polygon polyDCZ = Polygon.fromLngLats(listoflistDCZ);
+		Polygon polyDCZ = Polygon.fromLngLats(List.of(droneConfinementZone));
 		Feature featureDCZ = Feature.fromGeometry((Geometry) polyDCZ);
 		featureDCZ.addStringProperty("fill", "#ffffff");
 		featureDCZ.addNumberProperty("fill-opacity", 0);
-//		featureDCZ.addNumberProperty("weight", 0);
-//		featureDCZ.addNumberProperty("fillOpacity", 0.75);
 		features.add(featureDCZ);
+		
+		// REMOVE Adding the Starting Point
+		Point start = Point.fromLngLat(startingPosition.getLng(), startingPosition.getLat());
+		Feature f = Feature.fromGeometry((Geometry) start);
+		f.addStringProperty("marker-size", "large");
+		f.addStringProperty("marker-color", "#9400D3");
+		features.add(f);
+		
+		// REMOVE Adding the No Fly Zones
+		features.add(Feature.fromGeometry((Geometry)noFlyZoneBuildings.get(0)));
+		features.add(Feature.fromGeometry((Geometry)noFlyZoneBuildings.get(1)));
+		features.add(Feature.fromGeometry((Geometry)noFlyZoneBuildings.get(2)));
+		features.add(Feature.fromGeometry((Geometry)noFlyZoneBuildings.get(3)));
 		
 		// Feature Collection of all the features
 		FeatureCollection fc = FeatureCollection.fromFeatures(features);
-		System.out.println(fc.toJson());
+		return fc.toJson();
 	}
 	
-	protected void setSensorProperties() {
+	private void setSensorProperties() {
 		for(Sensor sensor: sensors) {
 			if(sensor.isVisited()) { // Visited sensors
 				sensor.setRgbValue(getRGBValue(sensor));
@@ -238,25 +256,88 @@ public class App
 		}
 	}
 	
-	protected void prepareDrone() {
+	private void prepareDrone() {
 		
     	droneConfinementZone.add(Forrest_Hill);
     	droneConfinementZone.add(KFC);
     	droneConfinementZone.add(Buccleuch_St_bus_stop);
     	droneConfinementZone.add(Meadows_Top);
 		Drone drone = new Drone(startingPosition, sensors, noFlyZoneBuildings, droneConfinementZone);
-		drone.traverseSensors();
+		moveWhileReading = drone.traverseSensors();
 		drone.homeComing();
 		moves = drone.getMoves();
-		System.out.println("Moves count: " + drone.getMovesCount() + 
-				", Explored sensors: " + drone.getExploredSensors());
+		exploredSensors = drone.getExploredSensors();
+		System.out.println("Date: " + day + "/" + month + "/" + year + "\nMoves count: " + drone.getMovesCount() + 
+				"\nExplored sensors: " + drone.getExploredSensors() + "\nNo of sensors read: " + drone.getExploredSensors().size());
 	}
 	
-	protected List<Double> getDirections(){
-		var directions = new ArrayList<Double>();
-		for(int i = 0; i < moves.size() - 1; ++i)
-			directions.add(moves.get(i).findDirection(moves.get(i+1)));
-		return directions;
+	private void generateOutputFiles() {
+    		
+		String fileNameTXT = "flightpath-" + day + "-" + month + "-" + year + ".txt";
+		String fileNameGeoJson = "readings-" + day + "-" + month + "-" + year + ".geojson";
+    			
+		// Creating TXT files
+		try {
+			File myObj = new File(fileNameTXT);
+			myObj.createNewFile();
+		} catch (IOException e) {
+			System.out.println("An error occurred: " + e);
+			e.printStackTrace();
+		}
+    			
+		// Creating GeoJson files
+		try {
+			File myObj = new File("/Users/eshaangupta/Desktop/ILP/heatmap/ilp-results/" + fileNameGeoJson);
+			myObj.createNewFile();
+		} catch (IOException e) {
+			System.out.println("An error occurred: " + e);
+			e.printStackTrace();
+		}	
+		writeOutputFiles(fileNameTXT, fileNameGeoJson);
+	}
+	
+	private void writeOutputFiles(String fileNameTXT, String fileNameGeoJson) {
+		
+		String s_txt = "";
+		for(int i = 0; i < moves.size() - 1; ++i) {
+			Position beforeMove = moves.get(i);
+			Position afterMove = moves.get(i + 1);
+			int sensorIndex = moveWhileReading.indexOf(i+1);
+			String sensorLoc;
+			if(sensorIndex != -1)
+				sensorLoc = sensors.get((exploredSensors.get(sensorIndex))).getLocation();
+			else sensorLoc = null; 
+			
+			s_txt += (i + 1) + "," + beforeMove.getLng() + "," + beforeMove.getLat() + "," + 
+								beforeMove.findDirection(afterMove) + "," + afterMove.getLng() + 
+									"," + afterMove.getLat() + "," + sensorLoc + "\n";
+		}
+		writeFileTXT(fileNameTXT, s_txt);
+		writeFileGeoJson(fileNameGeoJson, toGeoJson());	
+	}
+		
+	// Writing TXT output files
+	private void writeFileTXT(String fileNameTXT, String text) {
+		try {
+			FileWriter fr = new FileWriter(fileNameTXT);
+			fr.write(text);
+			fr.close();
+		} catch (IOException e) {
+			System.out.println("An error occurred: " + e);
+			e.printStackTrace();
+		}
+	}
+		
+	// Writing GeoJson output files
+	private void writeFileGeoJson(String fileNameGeoJson, String text) {
+		try {
+			FileWriter fr = new FileWriter(fileNameGeoJson);
+			fr.write(text);
+			fr.close();
+		} catch (IOException e) {
+			System.out.println("An error occurred: " + e);
+			e.printStackTrace();
+		}
 	}
 	
 	
@@ -288,8 +369,7 @@ public class App
     	obj.getSensors();
     	obj.prepareDrone();
     	obj.setSensorProperties();
-    	obj.toGeoJson();
-    	
+    	obj.generateOutputFiles();
     	
     	
     	

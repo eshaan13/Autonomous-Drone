@@ -1,4 +1,4 @@
-package uk.ac.ed.inf.heatmap;
+package uk.ac.ed.inf.aqmaps;
 
 import java.util.List;
 import com.mapbox.geojson.Point;
@@ -75,6 +75,11 @@ public class Position {
     	}
     	return result;
     }
+    
+//    protected boolean containPoint2(List<Point> points) {
+//    	TurfJoins
+//    	return true;
+//    }
     
     /**
 	 * Method to check if the next position of the drone is inside the Drone Confinement Zone

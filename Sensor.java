@@ -1,4 +1,4 @@
-package uk.ac.ed.inf.heatmap;
+package uk.ac.ed.inf.aqmaps;
 
 public class Sensor {
 	
@@ -8,7 +8,7 @@ public class Sensor {
 	private Position pos;
 	private int sensorNumber;
 	private String rgbValue;
-	private String markerSymbol = null;
+	private String markerSymbol;
 	private boolean visited;
 	
 	
@@ -57,8 +57,8 @@ public class Sensor {
 	 * @param sensor sensor to be read
 	 * @return true if the drone is in range of the sensor, otherwise false
 	 */
-	protected boolean inRange(Position position) {
-		if(position.distance(pos) < 0.0002)
+	boolean inRange(Position position) {
+		if(position.distance(pos) <= 0.0002)
 			return true;
 		else return false;
 	}

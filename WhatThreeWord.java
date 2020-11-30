@@ -1,4 +1,4 @@
-package uk.ac.ed.inf.heatmap;
+package uk.ac.ed.inf.aqmaps;
 
 public class WhatThreeWord {
 	
