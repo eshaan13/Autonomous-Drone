@@ -80,22 +80,25 @@ public class Drone {
 	 */
 	List<Integer> traverseSensors() {
 		var moveWhileReading = new ArrayList<Integer>();
-		Position currentPos = startingPosition;
+		Position currentPos = startingPosition; // starting position of the drone
 		moves.add(startingPosition);
+		
+		// reading the sensors till all the 33 sensors are read and in max 150 moves
 		while(exploredSensors.size() < 33 && movesCount < 150) {
 			int closestSensorNum = 0;
 			Sensor closestSensor = null;
 			Position nextPos = null;
 			do {
-				closestSensorNum =  currentPos.findClosestSensor(sensors, exploredSensors);
+				closestSensorNum =  currentPos.findClosestSensor(sensors, exploredSensors); // finding the number of the 
+																								//closest sensor to the current position of the drone
 				closestSensor = sensors.get(closestSensorNum);
-				nextPos = makeMove(currentPos, closestSensorNum, null);
+				nextPos = makeMove(currentPos, closestSensorNum, null); // Next position for the drone
 				currentPos = nextPos;
-				moves.add(currentPos);
+				moves.add(currentPos); // adding the new position to the list of moves
 				++ movesCount;
 			} while(!closestSensor.inRange(currentPos) && movesCount < 150);
 			if(closestSensor.inRange(currentPos)) {
-				readSensor(closestSensorNum);
+				readSensor(closestSensorNum); // reading the sensor when the drone is in its range
 				moveWhileReading.add(movesCount); /* Storing the count of the move 
 													when a sensor was read (used to generate output files) */
 			}
@@ -108,7 +111,9 @@ public class Drone {
 	 */
 	void homeComing() {
 		Position currentPos = moves.get(moves.size()-1);
-		Position target = startingPosition;
+		Position target = startingPosition; // returning back to the start location
+		
+		// Keep on moving till it reaches the start location 
 		while(!(currentPos.distance(target) < 0.0003) && movesCount < 150) {
 			Position nextPos = makeMove(currentPos, 0, target);
 			currentPos = nextPos;
@@ -127,15 +132,18 @@ public class Drone {
 	 */
 	private Position makeMove(Position currentPos, int closestSensorNum, Position target) {
 		Position destination;
-		if(target == null)
-			destination = sensors.get(closestSensorNum).getPos();
-		else destination = target;
-		double direction = currentPos.findDirection(destination);
-		if(checkDroneCrossNFZ(currentPos, direction))
-			direction = posInsideNFZ(currentPos, direction, closestSensorNum);
+		if(target == null) // when the drone is heading towards a sensor
+			destination = sensors.get(closestSensorNum).getPos(); // location of the sensor
+		else destination = target; // start location (when the drone is heading back to the start location)
+		
+		double direction = currentPos.findDirection(destination); // direction towards the desination position
+		
+		if(checkDroneCrossNFZ(currentPos, direction))// checking if the next position of the drone in given direction crosses any no fly zone
+			direction = posInsideNFZ(currentPos, direction, closestSensorNum); // finding the new direction (outside the No Fly Zone)
+		
 		double radianAngle = Math.toRadians(direction);
 		Position nextPos = new Position(currentPos.getLng() + 0.0003 * Math.cos(radianAngle), 
-				currentPos.getLat() + 0.0003 * Math.sin(radianAngle));
+				currentPos.getLat() + 0.0003 * Math.sin(radianAngle)); // final next position of the drone in the new direction
 		return nextPos;
 	}
 	
@@ -148,13 +156,14 @@ public class Drone {
 	private boolean checkDroneCrossNFZ(Position currentPos, double direction) {
 		double radianAngle = Math.toRadians(direction);
 		Position nextPos = null;
+		// Breaking one move into 1000 points of 0.0000003 degrees to check if any lies inside the No fly zone
 		for(int i = 1; i <= 1000; ++i) {
 			nextPos = new Position(currentPos.getLng() + (0.0000003 * i) * Math.cos(radianAngle), 
 					currentPos.getLat() + (0.0000003 * i) * Math.sin(radianAngle));
 			if(insideNoFlyZone(nextPos) || !nextPos.insideDroneConfinementZone(droneConfinementZone))
-				return true;
+				return true; // return true if any of the points lie inside the No fly zone
 		}
-		return false;
+		return false; // None of the points lie in the no fly zone
 	}
 	
 	/**
@@ -166,12 +175,11 @@ public class Drone {
 	 * @return new direction for the drone outside no fly zone
 	 */
 	private double posInsideNFZ(Position currentPos, double direction, int closestSensorNum) {
-		
-		int countRight = goRightOrLeft(currentPos, closestSensorNum, movesCount, "+");
-		int countLeft = goRightOrLeft(currentPos, closestSensorNum, movesCount, "-");
-		if(countRight < countLeft)
-			return goRight(currentPos, direction);
-		else return goLeft(currentPos, direction);
+		int countRight = goRightOrLeft(currentPos, closestSensorNum, movesCount, "+"); // number of moves the drone would take to go from right side of the No Fly Zone building
+		int countLeft = goRightOrLeft(currentPos, closestSensorNum, movesCount, "-"); // number of moves the drone would take to go from left side of the No Fly Zone building
+		if(countRight < countLeft) // checking which side has less number of moves
+			return goRight(currentPos, direction); // go from the right side of the building
+		else return goLeft(currentPos, direction); // go from the left side of the building
 	}
 	
 	/**
@@ -181,32 +189,35 @@ public class Drone {
 	 * @param closestSensorNum number of closest sensor
 	 * @param movesCountTemp count of moves
 	 * @param sign (+) incase to fly from the right side the building and 
-	 * 				(-) incase to fly from the left side the building 
+	 * 			   (-) incase to fly from the left side the building 
 	 * @return number of moves taken to get to the drone
 	 */
 	private int goRightOrLeft(Position currentPos, int closestSensorNum, int movesCountTemp, String sign) {
+		
+		// original direction towards the closest sensor
 		double directionNew = currentPos.findDirection((sensors.get(closestSensorNum).getPos()));
 		
 		// Base case
-		if(sensors.get(closestSensorNum).inRange(currentPos))
-			return movesCountTemp;
+		if(sensors.get(closestSensorNum).inRange(currentPos)) // checking if the new position is range of the sensor
+			return movesCountTemp; // returning the number of moves the drone took to go from the right or left side the building
 		else if(movesCountTemp > 150)
-			return Integer.MAX_VALUE;
+			return Integer.MAX_VALUE; // return a very big value if the drone doesn't reach the sensor within 150 moves
 		
 		// Recursive case
+		// Finding a new direction till it comes out of the no fly zone 
 		while(checkDroneCrossNFZ(currentPos, directionNew)) {
-			
-			if(sign.equals("+"))
-				directionNew = directionNew + 10;
-			else if(sign.equals("-")) 
-				directionNew = directionNew - 10;
-			directionNew = directionNew % 360;
+			if(sign.equals("+")) // the drone is going from the right side of the building
+				directionNew = directionNew + 10; // increasing the direction by 10 to get a new direction outside the no fly zone
+			else if(sign.equals("-")) // the drone is going from the left side of the building 
+				directionNew = directionNew - 10; // decreaing the direction by 10 to get a new direction outside the no fly zone
+			directionNew = directionNew % 360; // incase the new direction is greater than 360 degrees
 		}
+		
 		double radianAngle = Math.toRadians(directionNew);
-		++ movesCountTemp;
+		++ movesCountTemp; // increasing the moves count
 		Position nextPos = new Position(currentPos.getLng() + 0.0003 * Math.cos(radianAngle), 
-				currentPos.getLat() + 0.0003 * Math.sin(radianAngle));
-		return goRightOrLeft(nextPos, closestSensorNum, movesCountTemp, sign);
+				currentPos.getLat() + 0.0003 * Math.sin(radianAngle)); // computing the next position of the drone in the new direction
+		return goRightOrLeft(nextPos, closestSensorNum, movesCountTemp, sign); // recursive call to find the next position
 	}
 	
 	/**
@@ -217,6 +228,7 @@ public class Drone {
 	 */
 	private double goRight(Position currentPos, double direction) {
 		double directionNew = direction;
+		// finding the new direction outside no fly zone
 		do {
 			directionNew = directionNew + 10;
 			directionNew = directionNew % 360;
@@ -232,6 +244,7 @@ public class Drone {
 	 */
 	private double goLeft(Position currentPos, double direction) {
 		double directionNew = direction;
+		// finding the new direction outside no fly zone
 		do {
 			directionNew = directionNew - 10;
 			directionNew = directionNew % 360;
@@ -247,6 +260,7 @@ public class Drone {
 	private Boolean insideNoFlyZone(Position pos) {
 		Point p = Point.fromLngLat(pos.getLng(), pos.getLat());
 		
+		// checking if the position given is inside any of the no fly zone buildings
 		boolean result_AT =  TurfJoins.inside(p, noFlyZoneBuildings.get(0));
 		boolean result_DHT =  TurfJoins.inside(p, noFlyZoneBuildings.get(1));
 		boolean result_LIB =  TurfJoins.inside(p, noFlyZoneBuildings.get(2));	
@@ -260,7 +274,7 @@ public class Drone {
 	 * @param closestSensorNum Number of the closest sensor to read
 	 */
 	private void readSensor(int closestSensorNum) {
-		sensors.get(closestSensorNum).setVisited(true);
-		exploredSensors.add(closestSensorNum);
+		sensors.get(closestSensorNum).setVisited(true); // setting the visited field of the Sensor class to true 
+		exploredSensors.add(closestSensorNum); // adding the sensor number to the explored list to make sure it's not visited again 
 	}
 }

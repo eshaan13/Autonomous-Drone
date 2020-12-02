@@ -44,17 +44,19 @@ public class Position {
 		
 		double min_dist = Double.MAX_VALUE;
 		int min_pos = 0;
+		// iterating over all the sensors to get the closest one
 		for(int i = 0; i < sensors.size(); ++i) {
+			// checking for the sensors that are not already visited
 			if(!exploredList.contains(i)) {
 				Sensor sensor = sensors.get(i);
-				double distance = distance(sensor.getPos());
-				if(distance < min_dist) {
+				double distance = distance(sensor.getPos()); // distance to the sensor
+				if(distance < min_dist) { // checking if the new distance is less than the previous distance
 					min_dist = distance;
 					min_pos = i;
 				}
 			}
 		}
-		return min_pos;
+		return min_pos; // returning the number of the closest sensor
 	}
     
     /**
@@ -64,6 +66,7 @@ public class Position {
 	 */
 	boolean insideDroneConfinementZone(List <Point> droneConfinementZone) { 
 		Point p = Point.fromLngLat(lng, lat);
+		// checking if the position is inside the drone confinement zone
 		boolean result = TurfJoins.inside(p, Polygon.fromLngLats(List.of(droneConfinementZone)));
 		return result;
 	}
@@ -75,8 +78,9 @@ public class Position {
 	 */
 	double findDirection(Position pos) {
     	double direction = Math.toDegrees(Math.atan2((pos.getLat() - lat), (pos.getLng() - lng)));
-		if(direction < 0)
+		if(direction < 0) // incase the direction is less than 360 degrees
 			direction += 360;
+		// rounding of the direction to the nearest multiple of 10
 		direction = 10 * (Math.round(direction / 10.0));
 		return direction;
 	}

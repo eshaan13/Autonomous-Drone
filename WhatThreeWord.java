@@ -5,7 +5,7 @@ public class WhatThreeWord {
 	private String country;
 	private Square square;
 	private String nearestPlace;
-	private Coordinates coordinates;
+	private Coordinates coordinates; // Coordinates of the sensor
 	private String words;
 	private String language;
 	private String map;
@@ -63,10 +63,12 @@ public class WhatThreeWord {
 		this.map = map;
 	}
 
+	// Coordinates of the sensor
 	public static class Coordinates {
-		private double lng;
-		private double lat;
+		private double lng; // longitude
+		private double lat; // latitude
 		
+		// getters for the coordinates
 		public double getLongitude() {
 			return lng;
 		}

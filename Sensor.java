@@ -58,8 +58,9 @@ public class Sensor {
 	 * @return true if the drone is in range of the sensor, otherwise false
 	 */
 	boolean inRange(Position position) {
-		if(position.distance(pos) < 0.0002)
-			return true;
-		else return false;
+		if(position.distance(pos) < 0.0002) // finding the distance between the sensor and the current position 
+												// of the drone and checking if its less than 0.0002 degrees
+			return true; // drone is in range
+		else return false;  // drone is not in range
 	}
 }
