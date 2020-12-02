@@ -29,7 +29,7 @@ public class AppTest
     public void testTxtOutputFiles() throws IOException, InterruptedException
     {
     		
-    			Position pt = new Position(-3.1878, 55.9444);
+    			Position pt = new Position(-3.188396, 55.944425);
     		    App app = new App(d, m, yr, pt, 80);
     		    String args[] = {d, m, yr, "55.944425", "-3.188396", "5678", "80"};
     		    app.main(args);
@@ -143,7 +143,7 @@ public class AppTest
 	        e.printStackTrace();
 	      }
     	
-    	
+    	// Deleting the file
 	    File myObj2 = new File(fileName);
 	    if (myObj2.delete()) { 
 	      System.out.println("Deleted the file: " + myObj2.getName());
